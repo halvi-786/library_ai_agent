@@ -1,0 +1,3 @@
+# Library AI Agent – Python tool dependencies
+requests>=2.31.0
+ibm-watsonx-orchestrate>=1.0.0
