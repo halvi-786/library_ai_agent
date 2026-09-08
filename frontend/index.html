@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Library AI Agent</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #4f8ef7;
+      --accent2: #7c5cd8;
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --text: #e8eaf6;
+      --muted: #8892b0;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1a1d27 0%, #12162a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .logo h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.3px; }
+    .logo span { color: var(--accent); }
+    nav { display: flex; gap: 4px; }
+    nav button {
+      background: none; border: none; color: var(--muted);
+      padding: 8px 16px; border-radius: 8px; cursor: pointer;
+      font-size: 0.875rem; font-weight: 500; transition: all .2s;
+    }
+    nav button.active, nav button:hover { background: var(--surface2); color: var(--text); }
+    nav button.active { color: var(--accent); }
+
+    /* ── Layout ── */
+    main { flex: 1; max-width: 1280px; width: 100%; margin: 0 auto; padding: 2rem; }
+
+    /* ── Stat cards ── */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px; margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+    }
+    .stat-card .label { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .stat-card .value { font-size: 2rem; font-weight: 700; margin-top: 4px; }
+    .stat-card .value.green { color: var(--green); }
+    .stat-card .value.blue { color: var(--accent); }
+    .stat-card .value.purple { color: var(--accent2); }
+    .stat-card .value.amber { color: var(--amber); }
+
+    /* ── Search bar ── */
+    .search-bar {
+      display: flex; gap: 12px; margin-bottom: 1.5rem;
+    }
+    .search-input-wrap {
+      flex: 1; position: relative;
+    }
+    .search-input-wrap input {
+      width: 100%; padding: 12px 16px 12px 44px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text); font-size: .95rem;
+      outline: none; transition: border .2s;
+    }
+    .search-input-wrap input:focus { border-color: var(--accent); }
+    .search-icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: var(--muted); font-size: 16px; pointer-events: none;
+    }
+    .filter-select {
+      padding: 12px 16px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--text); font-size: .9rem; cursor: pointer; outline: none;
+    }
+    .btn {
+      padding: 12px 24px; border-radius: var(--radius);
+      font-size: .9rem; font-weight: 600; cursor: pointer;
+      border: none; transition: all .2s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #3b7de8; transform: translateY(-1px); }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-sm { padding: 7px 14px; font-size: .8rem; border-radius: 8px; }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-green:hover { background: #16a34a; }
+    .btn-amber { background: var(--amber); color: #000; }
+
+    /* ── Book grid ── */
+    .books-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .book-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; transition: all .2s;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .book-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .book-card .title { font-weight: 700; font-size: 1rem; line-height: 1.4; }
+    .book-card .author { color: var(--muted); font-size: .85rem; }
+    .book-card .subject-tag {
+      display: inline-block; padding: 3px 10px;
+      background: rgba(79,142,247,.15); color: var(--accent);
+      border-radius: 20px; font-size: .75rem; font-weight: 600;
+    }
+    .book-card .avail {
+      display: flex; align-items: center; gap: 6px; font-size: .82rem;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot.green { background: var(--green); }
+    .dot.red { background: var(--red); }
+    .book-card .meta { color: var(--muted); font-size: .8rem; margin-top: auto; }
+    .stars { color: var(--amber); font-size: .85rem; }
+
+    /* ── Section header ── */
+    .section-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 1.25rem;
+    }
+    .section-header h2 { font-size: 1.1rem; font-weight: 700; }
+
+    /* ── Page views ── */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ── Chat ── */
+    .chat-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; height: calc(100vh - 200px); }
+    .chat-main { display: flex; flex-direction: column; }
+    .chat-messages {
+      flex: 1; overflow-y: auto; padding: 16px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); display: flex; flex-direction: column; gap: 16px;
+    }
+    .msg { display: flex; gap: 10px; max-width: 85%; }
+    .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+    .msg .avatar {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+    }
+    .msg.bot .avatar { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+    .msg.user .avatar { background: var(--surface2); border: 1px solid var(--border); }
+    .msg .bubble {
+      padding: 12px 16px; border-radius: 12px;
+      font-size: .9rem; line-height: 1.6;
+    }
+    .msg.bot .bubble { background: var(--surface2); border: 1px solid var(--border); border-top-left-radius: 2px; }
+    .msg.user .bubble { background: var(--accent); color: #fff; border-top-right-radius: 2px; }
+    .chat-input-row {
+      display: flex; gap: 10px; margin-top: 12px;
+    }
+    .chat-input-row input {
+      flex: 1; padding: 12px 16px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text); font-size: .9rem; outline: none;
+    }
+    .chat-input-row input:focus { border-color: var(--accent); }
+    .chat-sidebar { display: flex; flex-direction: column; gap: 14px; }
+    .sidebar-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px;
+    }
+    .sidebar-card h3 { font-size: .9rem; font-weight: 700; margin-bottom: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .quick-btn {
+      display: block; width: 100%; padding: 9px 12px; margin-bottom: 8px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: .82rem;
+      cursor: pointer; text-align: left; transition: all .2s;
+    }
+    .quick-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Recommend page ── */
+    .recommend-form {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px; margin-bottom: 2rem;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    label { display: block; font-size: .82rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .4px; }
+    input[type="text"], select, textarea {
+      width: 100%; padding: 10px 14px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: .9rem; outline: none;
+      font-family: inherit;
+    }
+    input[type="text"]:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; }
+    .ai-response {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-left: 3px solid var(--accent); border-radius: var(--radius);
+      padding: 20px; margin-top: 20px; white-space: pre-wrap; line-height: 1.7;
+      font-size: .92rem;
+    }
+
+    /* ── Reservation page ── */
+    .reservation-form {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px; max-width: 560px; margin: 0 auto 2rem;
+    }
+    .form-group { margin-bottom: 16px; }
+    .success-banner {
+      background: rgba(34,197,94,.1); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin-top: 16px;
+      color: var(--green); font-size: .9rem; display: none;
+    }
+
+    /* ── Loading spinner ── */
+    .spinner {
+      width: 20px; height: 20px; border: 2px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin .6s linear infinite; display: inline-block; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty .icon { font-size: 48px; margin-bottom: 12px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      main { padding: 1rem; }
+      .chat-layout { grid-template-columns: 1fr; }
+      .chat-sidebar { display: none; }
+      .form-row { grid-template-columns: 1fr; }
+      nav button span { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Backend status banner ── -->
+<div id="backend-banner" style="
+  display:none; position:fixed; top:0; left:0; right:0; z-index:999;
+  background:#ef4444; color:#fff; text-align:center;
+  padding:10px 16px; font-size:.875rem; font-weight:600;">
+  ⚠️ Cannot reach backend at localhost:5000 —
+  run <code style="background:rgba(0,0,0,.25);padding:2px 6px;border-radius:4px;">start.bat</code>
+  or <code style="background:rgba(0,0,0,.25);padding:2px 6px;border-radius:4px;">python backend/app.py</code>
+  then refresh.
+  <span onclick="document.getElementById('backend-banner').style.display='none'"
+    style="float:right;cursor:pointer;margin-left:16px;">✕</span>
+</div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">📚</div>
+    <h1>Library <span>AI</span> Agent</h1>
+  </div>
+  <nav>
+    <button class="active" onclick="showPage('catalog')" id="nav-catalog">🔍 <span>Catalog</span></button>
+    <button onclick="showPage('recommend')" id="nav-recommend">✨ <span>Recommend</span></button>
+    <button onclick="showPage('chat')" id="nav-chat">💬 <span>Chat</span></button>
+    <button onclick="showPage('reserve')" id="nav-reserve">📋 <span>Reserve</span></button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ── Catalog Page ── -->
+  <div id="page-catalog" class="page active">
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card"><div class="label">Total Titles</div><div class="value blue" id="stat-total">—</div></div>
+      <div class="stat-card"><div class="label">Available</div><div class="value green" id="stat-avail">—</div></div>
+      <div class="stat-card"><div class="label">Subjects</div><div class="value purple" id="stat-subjects">—</div></div>
+      <div class="stat-card"><div class="label">Total Copies</div><div class="value amber" id="stat-copies">—</div></div>
+    </div>
+
+    <div class="search-bar">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Search by title, author, or subject…" oninput="debounceSearch()" />
+      </div>
+      <select class="filter-select" id="subject-filter" onchange="filterBooks()">
+        <option value="">All Subjects</option>
+      </select>
+      <button class="btn btn-secondary" onclick="toggleAvailableOnly()" id="avail-toggle">Available Only</button>
+    </div>
+
+    <div class="section-header">
+      <h2 id="books-count">All Books</h2>
+    </div>
+    <div class="books-grid" id="books-grid"></div>
+  </div>
+
+  <!-- ── Recommend Page ── -->
+  <div id="page-recommend" class="page">
+    <div class="recommend-form">
+      <h2 style="margin-bottom:20px;">🎯 AI-Powered Recommendations</h2>
+      <div class="form-row">
+        <div>
+          <label>What are you studying?</label>
+          <input type="text" id="rec-query" placeholder="e.g. machine learning algorithms" />
+        </div>
+        <div>
+          <label>Subject Area</label>
+          <select id="rec-subject">
+            <option value="">Select subject…</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label>Academic Level</label>
+          <select id="rec-level">
+            <option value="undergraduate">Undergraduate</option>
+            <option value="postgraduate">Postgraduate</option>
+            <option value="PhD">PhD / Research</option>
+            <option value="high school">High School</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end;">
+          <button class="btn btn-primary" style="width:100%;" onclick="getRecommendations()">
+            ✨ Get Recommendations
+          </button>
+        </div>
+      </div>
+      <div id="rec-loading" style="display:none;margin-top:16px;"><span class="spinner"></span> Consulting AI…</div>
+      <div class="ai-response" id="ai-response" style="display:none;"></div>
+    </div>
+
+    <div id="rec-books-section" style="display:none;">
+      <div class="section-header"><h2>📚 Matching Books</h2></div>
+      <div class="books-grid" id="rec-books-grid"></div>
+    </div>
+  </div>
+
+  <!-- ── Chat Page ── -->
+  <div id="page-chat" class="page">
+    <div class="chat-layout">
+      <div class="chat-main">
+        <div class="chat-messages" id="chat-messages">
+          <div class="msg bot">
+            <div class="avatar">🤖</div>
+            <div class="bubble">Hello! I'm your Library AI Assistant. I can help you find books, check availability, make reservations, and suggest resources based on your studies. What can I help you with today?</div>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="Ask me anything about the library…" onkeydown="if(event.key==='Enter')sendMessage()" />
+          <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+        </div>
+      </div>
+      <div class="chat-sidebar">
+        <div class="sidebar-card">
+          <h3>Quick Questions</h3>
+          <button class="quick-btn" onclick="quickAsk('What programming books do you have available?')">📖 Programming books available?</button>
+          <button class="quick-btn" onclick="quickAsk('I need help with machine learning. What books do you recommend?')">🤖 ML book recommendations</button>
+          <button class="quick-btn" onclick="quickAsk('Which AI and data science books are in stock?')">📊 AI & Data Science books</button>
+          <button class="quick-btn" onclick="quickAsk('How do I reserve a book?')">📋 How to reserve a book?</button>
+          <button class="quick-btn" onclick="quickAsk('What subjects does the library cover?')">🏷️ Library subjects</button>
+        </div>
+        <div class="sidebar-card">
+          <h3>Status</h3>
+          <div style="font-size:.85rem;color:var(--muted);line-height:1.8;" id="sidebar-stats">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Reserve Page ── -->
+  <div id="page-reserve" class="page">
+    <div class="reservation-form">
+      <h2 style="margin-bottom:20px;">📋 Reserve a Book</h2>
+      <div class="form-group">
+        <label>Search for Book</label>
+        <input type="text" id="res-book-search" placeholder="Type to search…" oninput="searchForReservation()" />
+        <div id="res-search-results" style="margin-top:10px;"></div>
+      </div>
+      <div class="form-group">
+        <label>Selected Book</label>
+        <input type="text" id="res-book-title" placeholder="No book selected" readonly style="background:var(--surface);color:var(--muted);" />
+        <input type="hidden" id="res-book-id" />
+      </div>
+      <div class="form-group">
+        <label>Your Name</label>
+        <input type="text" id="res-name" placeholder="Full name" />
+      </div>
+      <div class="form-group">
+        <label>Student ID</label>
+        <input type="text" id="res-sid" placeholder="e.g. S12345" />
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="makeReservation()">Confirm Reservation</button>
+      <div class="success-banner" id="res-success"></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const API = 'http://localhost:5000/api';
+  let allBooks = [];
+  let chatHistory = [];
+  let availableOnly = false;
+  let searchTimer = null;
+
+  // ── Safe escape for inline onclick attributes ────────────────────────────────
+  function esc(str) {
+    return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  }
+
+  // ── Init ────────────────────────────────────────────────────────────────────
+  async function init() {
+    // Quick backend connectivity check
+    try {
+      const r = await fetch(`${API}/health`, { signal: AbortSignal.timeout(4000) });
+      if (!r.ok) throw new Error('not ok');
+      document.getElementById('backend-banner').style.display = 'none';
+    } catch(e) {
+      document.getElementById('backend-banner').style.display = 'block';
+    }
+    await Promise.all([loadStats(), loadBooks(), loadSubjects()]);
+  }
+
+  async function loadStats() {
+    try {
+      const r = await fetch(`${API}/stats`);
+      const d = await r.json();
+      document.getElementById('stat-total').textContent = d.total_titles;
+      document.getElementById('stat-avail').textContent = d.available_titles;
+      document.getElementById('stat-subjects').textContent = d.total_subjects;
+      document.getElementById('stat-copies').textContent = d.total_copies;
+      document.getElementById('sidebar-stats').innerHTML =
+        `📚 ${d.total_titles} titles<br>✅ ${d.available_titles} available<br>🏷️ ${d.total_subjects} subjects<br>📦 ${d.total_copies} total copies`;
+    } catch(e) { console.error('Stats error:', e); }
+  }
+
+  async function loadBooks() {
+    try {
+      const r = await fetch(`${API}/books`);
+      const d = await r.json();
+      allBooks = d.books;
+      renderBooks(allBooks);
+    } catch(e) {
+      document.getElementById('books-grid').innerHTML = '<div class="empty"><div class="icon">⚠️</div><p>Could not connect to backend. Start the Flask server on port 5000.</p></div>';
+    }
+  }
+
+  async function loadSubjects() {
+    try {
+      const r = await fetch(`${API}/subjects`);
+      const d = await r.json();
+      const selCatalog = document.getElementById('subject-filter');
+      const selRec = document.getElementById('rec-subject');
+      d.subjects.forEach(s => {
+        selCatalog.innerHTML += `<option value="${s}">${s}</option>`;
+        selRec.innerHTML += `<option value="${s}">${s}</option>`;
+      });
+    } catch(e) {}
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+  function renderBooks(books) {
+    const grid = document.getElementById('books-grid');
+    document.getElementById('books-count').textContent = `${books.length} Book${books.length !== 1 ? 's' : ''}`;
+    if (!books.length) {
+      grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="icon">🔍</div><p>No books found</p></div>';
+      return;
+    }
+    grid.innerHTML = books.map(b => `
+      <div class="book-card">
+        <div class="title">${b.title}</div>
+        <div class="author">by ${b.author} · ${b.year}</div>
+        <div><span class="subject-tag">${b.subject}</span></div>
+        <div class="avail">
+          <span class="dot ${b.available ? 'green' : 'red'}"></span>
+          <span>${b.available ? `${b.copies} of ${b.total_copies} available` : 'All copies checked out'}</span>
+        </div>
+        <div class="stars">${'★'.repeat(Math.round(b.rating))}${'☆'.repeat(5-Math.round(b.rating))} ${b.rating}</div>
+        <div class="meta" style="display:flex;gap:8px;margin-top:8px;">
+          <button class="btn btn-sm btn-secondary" onclick="reserveFromCatalog('${esc(b.id)}','${esc(b.title)}')">Reserve</button>
+          ${b.available ? '' : `<button class="btn btn-sm btn-amber" onclick="reserveFromCatalog('${esc(b.id)}','${esc(b.title)}')">Waitlist</button>`}
+        </div>
+      </div>`).join('');
+  }
+
+  // ── Search & Filter ─────────────────────────────────────────────────────────
+  function debounceSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(filterBooks, 300);
+  }
+
+  function filterBooks() {
+    const q = document.getElementById('search-input').value.toLowerCase();
+    const subject = document.getElementById('subject-filter').value;
+    let books = allBooks;
+    if (q) books = books.filter(b =>
+      b.title.toLowerCase().includes(q) ||
+      b.author.toLowerCase().includes(q) ||
+      b.subject.toLowerCase().includes(q));
+    if (subject) books = books.filter(b => b.subject === subject);
+    if (availableOnly) books = books.filter(b => b.available);
+    renderBooks(books);
+  }
+
+  function toggleAvailableOnly() {
+    availableOnly = !availableOnly;
+    const btn = document.getElementById('avail-toggle');
+    btn.style.background = availableOnly ? 'var(--accent)' : '';
+    btn.style.color = availableOnly ? '#fff' : '';
+    filterBooks();
+  }
+
+  // ── Recommendations ─────────────────────────────────────────────────────────
+  async function getRecommendations() {
+    const query = document.getElementById('rec-query').value.trim();
+    const subject = document.getElementById('rec-subject').value;
+    const level = document.getElementById('rec-level').value;
+    if (!query && !subject) { alert('Please enter a topic or select a subject.'); return; }
+
+    document.getElementById('rec-loading').style.display = 'block';
+    document.getElementById('ai-response').style.display = 'none';
+    document.getElementById('rec-books-section').style.display = 'none';
+
+    try {
+      const r = await fetch(`${API}/recommendations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, subject, level })
+      });
+      const d = await r.json();
+      document.getElementById('ai-response').textContent = d.ai_response;
+      document.getElementById('ai-response').style.display = 'block';
+
+      if (d.matched_books?.length) {
+        const grid = document.getElementById('rec-books-grid');
+        grid.innerHTML = d.matched_books.map(b => `
+          <div class="book-card">
+            <div class="title">${b.title}</div>
+            <div class="author">by ${b.author}</div>
+            <div><span class="subject-tag">${b.subject}</span></div>
+            <div class="avail">
+              <span class="dot ${b.available ? 'green' : 'red'}"></span>
+              <span>${b.available ? `${b.copies} copies available` : 'Waitlist only'}</span>
+            </div>
+            <button class="btn btn-sm btn-primary" style="margin-top:8px;" onclick="reserveFromCatalog('${esc(b.id)}','${esc(b.title)}')">
+              ${b.available ? 'Reserve' : 'Join Waitlist'}
+            </button>
+          </div>`).join('');
+        document.getElementById('rec-books-section').style.display = 'block';
+      }
+    } catch(e) {
+      document.getElementById('ai-response').textContent = 'Unable to connect to the AI backend. Please ensure the Flask server is running.';
+      document.getElementById('ai-response').style.display = 'block';
+    } finally {
+      document.getElementById('rec-loading').style.display = 'none';
+    }
+  }
+
+  // ── Chat ────────────────────────────────────────────────────────────────────
+  async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = '';
+    appendMsg('user', msg, '🧑‍🎓');
+
+    const typing = appendMsg('bot', '<span class="spinner"></span>', '🤖');
+
+    try {
+      const r = await fetch(`${API}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, history: chatHistory })
+      });
+      const d = await r.json();
+      typing.querySelector('.bubble').textContent = d.response;
+      chatHistory.push({ user: msg, assistant: d.response });
+    } catch(e) {
+      typing.querySelector('.bubble').textContent = 'Could not reach the AI backend. Please start the Flask server.';
+    }
+  }
+
+  function quickAsk(q) {
+    document.getElementById('chat-input').value = q;
+    sendMessage();
+  }
+
+  function appendMsg(role, text, avatar) {
+    const wrap = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.className = `msg ${role}`;
+    div.innerHTML = `<div class="avatar">${avatar}</div><div class="bubble">${text}</div>`;
+    wrap.appendChild(div);
+    wrap.scrollTop = wrap.scrollHeight;
+    return div;
+  }
+
+  // ── Reservation ─────────────────────────────────────────────────────────────
+  function searchForReservation() {
+    const q = document.getElementById('res-book-search').value.toLowerCase();
+    const results = document.getElementById('res-search-results');
+    if (!q) { results.innerHTML = ''; return; }
+    const matches = allBooks.filter(b =>
+      b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q)
+    ).slice(0, 5);
+    results.innerHTML = matches.map(b => `
+      <div onclick="selectBook('${esc(b.id)}','${esc(b.title)}','${b.available}')"
+        style="padding:10px 12px;background:var(--surface2);border:1px solid var(--border);
+        border-radius:8px;cursor:pointer;margin-bottom:6px;transition:all .15s;"
+        onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <strong>${b.title}</strong><br>
+        <span style="color:var(--muted);font-size:.82rem;">${b.author} · </span>
+        <span style="color:${b.available ? 'var(--green)' : 'var(--amber)'};font-size:.82rem;">
+          ${b.available ? '✓ Available' : '⏳ Waitlist'}
+        </span>
+      </div>`).join('') || '<div style="color:var(--muted);font-size:.85rem;">No matches found</div>';
+  }
+
+  function selectBook(id, title, available) {
+    document.getElementById('res-book-id').value = id;
+    document.getElementById('res-book-title').value = title + (available === 'false' ? ' (Waitlist)' : '');
+    document.getElementById('res-book-search').value = '';
+    document.getElementById('res-search-results').innerHTML = '';
+  }
+
+  async function makeReservation() {
+    const bookId = document.getElementById('res-book-id').value;
+    const name = document.getElementById('res-name').value.trim();
+    const sid = document.getElementById('res-sid').value.trim();
+    if (!bookId) { alert('Please select a book first.'); return; }
+    if (!name || !sid) { alert('Please enter your name and student ID.'); return; }
+
+    try {
+      const r = await fetch(`${API}/books/${bookId}/reserve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_name: name, student_id: sid })
+      });
+      const d = await r.json();
+      const banner = document.getElementById('res-success');
+      banner.textContent = d.message;
+      banner.style.display = 'block';
+      if (d.status === 'confirmed') banner.style.color = 'var(--green)';
+      else banner.style.color = 'var(--amber)';
+      setTimeout(() => banner.style.display = 'none', 6000);
+      loadBooks(); // refresh availability
+    } catch(e) {
+      alert('Could not connect to backend. Please start the Flask server.');
+    }
+  }
+
+  function reserveFromCatalog(id, title) {
+    showPage('reserve');
+    document.getElementById('res-book-id').value = id;
+    document.getElementById('res-book-title').value = title;
+  }
+
+  // ── Navigation ──────────────────────────────────────────────────────────────
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById(`page-${name}`).classList.add('active');
+    document.getElementById(`nav-${name}`).classList.add('active');
+  }
+
+  init();
+</script>
+</body>
+</html>
